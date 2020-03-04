@@ -24,6 +24,17 @@ def parse_args():
     return parser.parse_args()
 
 
+
+def get_identity_matrix(rows, cols):
+    res = np.zeros((rows, cols))
+    row_bound = int(rows/2)
+    col_bound = int(cols/2)
+    for i in range(rows):
+        for j in range(cols):
+            if (i < row_bound and j < col_bound) or (i >= row_bound and j >= col_bound) :
+                res[i, j] = 1
+    return res
+
 ## The shape of Conv2D weights: [kernel_row, kernel_col, number of channels, number of filters]
 def _init_conv_weights(option, num_kernels, kernel_row, kernel_col, num_channels, target_rank):
     if option == 'h_rank':
@@ -38,6 +49,19 @@ def _init_conv_weights(option, num_kernels, kernel_row, kernel_col, num_channels
         l_rank_weights = l_rank_weights.dot(l_rank_weights.T)
         weights = h_rank_weights.dot(l_rank_weights)
         weights = np.reshape(weights, (kernel_row, kernel_col, num_channels, num_kernels))
+    elif option =='l_rank_identity':
+        sub_weights = get_identity_matrix(kernel_row, target_rank)
+        weights = sub_weights.dot(sub_weights.T)
+        weights = np.reshape(weights, (kernel_row, kernel_col, num_channels, num_kernels))
+    elif option == 'HL_identity':
+        h_rank_weights = np.random.normal(size=(kernel_row, kernel_col))
+        l_rank_weights = get_identity_matrix(kernel_row, target_rank)
+        l_rank_weights = l_rank_weights.dot(l_rank_weights.T)
+        weights = h_rank_weights.dot(l_rank_weights)
+        weights = np.reshape(weights, (kernel_row, kernel_col, num_channels, num_kernels))
+
+
+
     return weights
 
 def runCNN(args):
@@ -58,7 +82,6 @@ def runCNN(args):
     y_test = to_categorical(y_test)
     y_train[0]
 
-    '''High rank CNN'''
     #create model
     model = Sequential()
 
@@ -71,9 +94,10 @@ def runCNN(args):
     conv_2d = Conv2D(num_kernels, kernel_size=3, activation='relu', input_shape=(28, 28, num_channels))
     model.add(conv_2d)
     weights = _init_conv_weights(args.option, num_kernels, kernel_row, kernel_col, num_channels, target_rank)
-    conv_w = conv_2d.set_weights([weights, asarray([0.0])])
+    conv_2d.set_weights([weights, asarray([0.0])])
     model.add(Flatten())
     model.add(Dense(10, activation='softmax'))
+
     #compile model using accuracy to measure model performance
     model.compile(optimizer='adam', loss='categorical_crossentropy', metrics=['accuracy'])
 
