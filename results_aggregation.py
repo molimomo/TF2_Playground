@@ -21,6 +21,7 @@ def parse_args():
 def load_history(args):
     target_file = os.path.join(args.results_folder,"history_"+str(args.dataset)+"_"+str(args.option)+".json")
     print(target_file)
+    history = json.load(target_file)
     df_history = pd.read_json(target_file)
     if not os.path.isdir(args.target_folder):
         os.makedirs(args.target_folder)

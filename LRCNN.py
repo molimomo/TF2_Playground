@@ -2,6 +2,7 @@ from keras.datasets import mnist
 from keras.utils import to_categorical
 import matplotlib.pyplot as plt
 from numpy import asarray
+import pandas as pd
 from keras.models import Sequential
 from keras.layers import Dense, Conv2D, Flatten
 from keras.models import load_model
@@ -11,6 +12,28 @@ import os
 import argparse
 import json
 
+def draw_history(res, model_str):
+    # Save figures
+    if not os.path.isdir("./result_figures/"):
+        os.mkdir("./result_figures/")
+    # summarize history for accuracy
+    plt.plot(res.history['accuracy'])
+    plt.plot(res.history['val_accuracy'])
+    plt.title('model accuracy (' + model_str + ')')
+    plt.ylabel('accuracy')
+    plt.xlabel('epoch')
+    plt.legend(['train', 'test'], loc='upper left')
+    plt.savefig("./result_figures/accuracy_" + model_str + ".png")
+    plt.clf()
+    # summarize history for loss
+    plt.plot(res.history['loss'])
+    plt.plot(res.history['val_loss'])
+    plt.title('model loss (' + model_str + ')')
+    plt.ylabel('loss')
+    plt.xlabel('epoch')
+    plt.legend(['train', 'test'], loc='upper left')
+    plt.savefig("./result_figures/loss_" + model_str + ".png")
+
 def parse_args():
     parser = argparse.ArgumentParser(description="Run Deep CNN.")
     parser.add_argument('--option', nargs='?', default='h_rank',
@@ -18,11 +41,21 @@ def parse_args():
     parser.add_argument('--target_rank', type=int, default=2,
                         help='Target rank for Conv low rank weight matrix.')
     parser.add_argument('--dataset', nargs='?', default='mnist',
-                        help='Choose a Dataset')
+                        help='Choose a Dataset.')
+    parser.add_argument('--history_path', nargs='?', default='./history/',
+                        help='The folder path to save history.')
+    parser.add_argument('--model_path', nargs='?', default='./pretrain/',
+                        help='The folder path to save trained model.')
     parser.add_argument('--epoch', type=int, default=100,
-                        help='Training Epoch')
-    return parser.parse_args()
+                        help='Training Epoch.')
+    parser.add_argument('--channel', type=int, default=1,
+                        help='Number of channel.')
+    parser.add_argument('--kernel', type=int, default=1,
+                        help='Number of kernel.')
+    parser.add_argument('--kernel_size',  type=int, default=3,
+                        help='The dimension for a kernel.')
 
+    return parser.parse_args()
 
 
 def get_identity_matrix(rows, cols):
@@ -86,78 +119,57 @@ def _init_conv_weights(option, num_kernels, kernel_row, kernel_col, num_channels
 def runCNN(args):
     #download mnist data and split into train and test sets
     (X_train, y_train), (X_test, y_test) = mnist.load_data()
+    [num_train, rows, cols] = X_train.shape
+    num_test = X_test.shape[0]
 
-    #plot the first image in the dataset
-    # plt.imshow(X_train[0])
-    # plt.show()
-
-    print(X_train[0].shape)
     #reshape data to fit model
-    X_train = X_train.reshape(60000,28,28,1)
-    X_test = X_test.reshape(10000,28,28,1)
+    X_train = X_train.reshape(num_train,rows,cols, int(args.channel))
+    X_test = X_test.reshape(num_test,rows,cols,int(args.channel))
+    num_class = len(np.unique(np.concatenate((np.unique(y_train), np.unique(y_test)))))
 
     #one-hot encode target column
     y_train = to_categorical(y_train)
     y_test = to_categorical(y_test)
-    y_train[0]
 
     #create model
     model = Sequential()
 
     #add model layers
-    num_channels = 1
-    num_kernels = 1
-    kernel_row = 3
-    kernel_col = 3
-    target_rank = 2
-    conv_2d = Conv2D(num_kernels, kernel_size=3, activation='relu', input_shape=(28, 28, num_channels))
+    num_kernels = int(args.kernel)
+    kernel_size = int(args.kernel_size)
+    target_rank = int(args.target_rank)
+    num_channel = int(args.channel)
+    conv_2d = Conv2D(num_kernels, kernel_size=kernel_size, activation='relu', input_shape=(rows, cols, num_channel))
     model.add(conv_2d)
-    weights = _init_conv_weights(args.option, num_kernels, kernel_row, kernel_col, num_channels, target_rank)
+    weights = _init_conv_weights(args.option, num_kernels, kernel_size, kernel_size, num_channel, target_rank)
     conv_2d.set_weights([weights, asarray([0.0])])
     model.add(Flatten())
-    model.add(Dense(10, activation='softmax'))
+    model.add(Dense(num_class, activation='softmax'))
 
     #compile model using accuracy to measure model performance
     model.compile(optimizer='adam', loss='categorical_crossentropy', metrics=['accuracy'])
 
     #train the model
     res = model.fit(X_train, y_train, validation_data=(X_test, y_test), verbose=2, epochs=args.epoch)
-    model_str = args.dataset +'_' +str(args.option)
+    model_str = "_".join([args.option, "kernel_size", str(args.kernel_size),
+                          "num_kernel", str(args.kernel),
+                          "channel", str(args.channel),
+                          "rank",str(args.target_rank),
+                          "epoch", str(args.epoch)])
 
     # Save history
-    if not os.path.isdir("./history/"):
-        os.mkdir("./history/")
-    with open('./history/history_'+model_str+'.json', 'w') as file:
-        json.dump(str(res.history), file)
+    history_loc = os.path.join(args.history_path, args.dataset)
+    if not os.path.isdir(history_loc):
+        os.mkdir(history_loc)
+    pd.DataFrame.from_dict(res.history).to_csv(history_loc + model_str+'.csv', index=False)
     print("Saved history to disk")
 
     # Save model
-    if not os.path.isdir("./pretrain/"):
-        os.mkdir("./pretrain/")
-    model.save("./pretrain/"+model_str+'.h5')
+    model_loc = os.path.join(args.model_path, args.dataset)
+    if not os.path.isdir(model_loc):
+        os.mkdir(model_loc)
+    model.save(model_loc+'/'+model_str+'.h5')
     print("Saved model to disk")
-
-    # Save figures
-    if not os.path.isdir("./result_figures/"):
-        os.mkdir("./result_figures/")
-    # summarize history for accuracy
-    plt.plot(res.history['accuracy'])
-    plt.plot(res.history['val_accuracy'])
-    plt.title('model accuracy ('+model_str+')')
-    plt.ylabel('accuracy')
-    plt.xlabel('epoch')
-    plt.legend(['train', 'test'], loc='upper left')
-    plt.savefig("./result_figures/accuracy_"+model_str+".png")
-    plt.clf()
-    # summarize history for loss
-    plt.plot(res.history['loss'])
-    plt.plot(res.history['val_loss'])
-    plt.title('model loss ('+model_str+')')
-    plt.ylabel('loss')
-    plt.xlabel('epoch')
-    plt.legend(['train', 'test'], loc='upper left')
-    plt.savefig("./result_figures/loss_" + model_str + ".png")
-
 
 if __name__ == '__main__':
     # Data loading
