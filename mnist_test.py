@@ -37,31 +37,50 @@ def get_identity_matrix(rows, cols):
 
 ## The shape of Conv2D weights: [kernel_row, kernel_col, number of channels, number of filters]
 def _init_conv_weights(option, num_kernels, kernel_row, kernel_col, num_channels, target_rank):
+    print(option)
     if option == 'h_rank':
         weights = np.random.normal(size=(kernel_row, kernel_col, num_channels, num_kernels))
     elif option == 'l_rank':
         sub_weights = np.random.normal(size=(kernel_row,target_rank))
         weights = sub_weights.dot(sub_weights.T)
-        weights = np.reshape(weights, (kernel_row, kernel_col, num_channels, num_kernels))
     elif option =='HL':
         h_rank_weights = np.random.normal(size=(kernel_row, kernel_col))
         l_rank_weights = np.random.normal(size=(kernel_row,target_rank))
         l_rank_weights = l_rank_weights.dot(l_rank_weights.T)
         weights = h_rank_weights.dot(l_rank_weights)
-        weights = np.reshape(weights, (kernel_row, kernel_col, num_channels, num_kernels))
     elif option =='l_rank_identity':
         sub_weights = get_identity_matrix(kernel_row, target_rank)
         weights = sub_weights.dot(sub_weights.T)
-        weights = np.reshape(weights, (kernel_row, kernel_col, num_channels, num_kernels))
     elif option == 'HL_identity':
         h_rank_weights = np.random.normal(size=(kernel_row, kernel_col))
         l_rank_weights = get_identity_matrix(kernel_row, target_rank)
         l_rank_weights = l_rank_weights.dot(l_rank_weights.T)
         weights = h_rank_weights.dot(l_rank_weights)
-        weights = np.reshape(weights, (kernel_row, kernel_col, num_channels, num_kernels))
-
-
-
+    elif option == 'dual_low_z_v':
+        z = np.random.normal(size=(kernel_row,target_rank))
+        v = np.random.normal(size=(kernel_row,target_rank))
+        w = z.dot(z.T)
+        i = v.dot(v.T)
+        weights = w.dot(i)
+    elif option == 'dual_low_zi_v':
+        z = get_identity_matrix(kernel_row, target_rank)
+        v = np.random.normal(size=(kernel_row, target_rank))
+        w = z.dot(z.T)
+        i = v.dot(v.T)
+        weights = w.dot(i)
+    elif option == 'dual_low_z_vi':
+        z = np.random.normal(size=(kernel_row, target_rank))
+        v = get_identity_matrix(kernel_row, target_rank)
+        w = z.dot(z.T)
+        i = v.dot(v.T)
+        weights = w.dot(i)
+    elif option == 'dual_low_zi_vi':
+        z = get_identity_matrix(kernel_row, target_rank)
+        v = get_identity_matrix(kernel_row, target_rank)
+        w = z.dot(z.T)
+        i = v.dot(v.T)
+        weights = w.dot(i)
+    weights = np.reshape(weights, (kernel_row, kernel_col, num_channels, num_kernels))
     return weights
 
 def runCNN(args):
