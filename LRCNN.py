@@ -1,4 +1,7 @@
 from keras.datasets import mnist
+from keras.datasets import fashion_mnist
+from keras.datasets import cifar10
+from keras.datasets import cifar100
 from keras.utils import to_categorical
 import matplotlib.pyplot as plt
 from numpy import asarray
@@ -116,9 +119,19 @@ def _init_conv_weights(option, num_kernels, kernel_row, kernel_col, num_channels
     weights = np.reshape(weights, (kernel_row, kernel_col, num_channels, num_kernels))
     return weights
 
+def load_datasets(dataset):
+    if dataset == 'mnist':
+        return mnist.load_data()
+    elif dataset == 'fashion_mnist':
+        return fashion_mnist.load_data()
+    elif dataset == 'cifar10':
+        return cifar10.load_data()
+    elif dataset == 'cifar100':
+        return cifar100.load_data()
+
 def runCNN(args):
     #download mnist data and split into train and test sets
-    (X_train, y_train), (X_test, y_test) = mnist.load_data()
+    (X_train, y_train), (X_test, y_test) = load_datasets(args.dataset)
     [num_train, rows, cols] = X_train.shape
     num_test = X_test.shape[0]
 
@@ -161,7 +174,7 @@ def runCNN(args):
     history_loc = os.path.join(args.history_path, args.dataset)
     if not os.path.isdir(history_loc):
         os.mkdir(history_loc)
-    pd.DataFrame.from_dict(res.history).to_csv(history_loc + model_str+'.csv', index=False)
+    pd.DataFrame.from_dict(res.history).to_csv(history_loc + '/'+model_str+'.csv', index=False)
     print("Saved history to disk")
 
     # Save model
