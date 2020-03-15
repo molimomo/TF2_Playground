@@ -131,6 +131,7 @@ def load_datasets(dataset):
 
 def runCNN(args):
     #download mnist data and split into train and test sets
+    print('Data set: ' + str(args.dataset))
     (X_train, y_train), (X_test, y_test) = load_datasets(args.dataset)
     [num_train, rows, cols] = X_train.shape
     num_test = X_test.shape[0]
