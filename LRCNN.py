@@ -13,29 +13,8 @@ from keras.initializers import glorot_uniform
 import numpy as np
 import os
 import argparse
-import json
 
-def draw_history(res, model_str):
-    # Save figures
-    if not os.path.isdir("./result_figures/"):
-        os.mkdir("./result_figures/")
-    # summarize history for accuracy
-    plt.plot(res.history['accuracy'])
-    plt.plot(res.history['val_accuracy'])
-    plt.title('model accuracy (' + model_str + ')')
-    plt.ylabel('accuracy')
-    plt.xlabel('epoch')
-    plt.legend(['train', 'test'], loc='upper left')
-    plt.savefig("./result_figures/accuracy_" + model_str + ".png")
-    plt.clf()
-    # summarize history for loss
-    plt.plot(res.history['loss'])
-    plt.plot(res.history['val_loss'])
-    plt.title('model loss (' + model_str + ')')
-    plt.ylabel('loss')
-    plt.xlabel('epoch')
-    plt.legend(['train', 'test'], loc='upper left')
-    plt.savefig("./result_figures/loss_" + model_str + ".png")
+import json
 
 def parse_args():
     parser = argparse.ArgumentParser(description="Run Deep CNN.")
@@ -57,6 +36,8 @@ def parse_args():
                         help='Number of kernel.')
     parser.add_argument('--kernel_size',  type=int, default=3,
                         help='The dimension for a kernel.')
+    parser.add_argument('--identity_option', type=int, default=1,
+                        help='0: unscalaring, 1: scalar to 1')
 
     return parser.parse_args()
 
@@ -87,10 +68,14 @@ def _init_conv_weights(option, num_kernels, kernel_row, kernel_col, num_channels
     elif option =='l_rank_identity':
         sub_weights = get_identity_matrix(kernel_row, target_rank)
         weights = sub_weights.dot(sub_weights.T)
+        if (args.identity_option != 0):
+            weights[weights>1] = 1
     elif option == 'HL_identity':
         h_rank_weights = np.random.normal(size=(kernel_row, kernel_col))
         l_rank_weights = get_identity_matrix(kernel_row, target_rank)
         l_rank_weights = l_rank_weights.dot(l_rank_weights.T)
+        if (args.identity_option != 0):
+            l_rank_weights[l_rank_weights>1] = 1
         weights = h_rank_weights.dot(l_rank_weights)
     elif option == 'dual_low_z_v':
         z = np.random.normal(size=(kernel_row,target_rank))
@@ -102,6 +87,8 @@ def _init_conv_weights(option, num_kernels, kernel_row, kernel_col, num_channels
         z = get_identity_matrix(kernel_row, target_rank)
         v = np.random.normal(size=(kernel_row, target_rank))
         w = z.dot(z.T)
+        if (args.identity_option != 0):
+            w[w>1] = 1
         i = v.dot(v.T)
         weights = w.dot(i)
     elif option == 'dual_low_z_vi':
@@ -109,12 +96,17 @@ def _init_conv_weights(option, num_kernels, kernel_row, kernel_col, num_channels
         v = get_identity_matrix(kernel_row, target_rank)
         w = z.dot(z.T)
         i = v.dot(v.T)
+        if (args.identity_option != 0):
+            i[i>1] = 1
         weights = w.dot(i)
     elif option == 'dual_low_zi_vi':
         z = get_identity_matrix(kernel_row, target_rank)
         v = get_identity_matrix(kernel_row, target_rank)
         w = z.dot(z.T)
         i = v.dot(v.T)
+        if (args.identity_option != 0):
+            w[w > 1] = 1
+            i[i > 1] = 1
         weights = w.dot(i)
     weights = np.reshape(weights, (kernel_row, kernel_col, num_channels, num_kernels))
     return weights
@@ -172,6 +164,8 @@ def runCNN(args):
                           "epoch", str(args.epoch)])
 
     # Save history
+    if not os.path.isdir(args.history_path):
+        os.mkdirs(args.history_path)
     history_loc = os.path.join(args.history_path, args.dataset)
     if not os.path.isdir(history_loc):
         os.mkdir(history_loc)
@@ -179,6 +173,8 @@ def runCNN(args):
     print("Saved history to disk")
 
     # Save model
+    if not os.path.isdir(args.model_path):
+        os.mkdir(args.model_path)
     model_loc = os.path.join(args.model_path, args.dataset)
     if not os.path.isdir(model_loc):
         os.mkdir(model_loc)
