@@ -1,15 +1,12 @@
 import os
 import subprocess
 
-datasets = ['mnist']
+datasets = ['mnist','fashion_mnist']
 kernel_sizes =[3,5,7]
 groups = ['a']
 metrices = ['val_accuracy']
-option = 'converge_status'
+option = 'afterward_converge'
 identity_option = 1
-arg_list = list()
-arg_list.append('python3')
-arg_list.append('plotting_results.py')
 for dataset in datasets:
     for kernel_size in kernel_sizes:
         for metric in metrices:
@@ -25,7 +22,7 @@ for dataset in datasets:
 
 # datasets = ['mnist', 'fashion_mnist']
 # kernel_sizes =[3,5,7]
-# metrices = ['val_accuracy', 'val_loss']
+# metrices = ['val_accuracy']
 # arg_list = list()
 # arg_list.append('python3')
 # script_name = 'results_aggregation.py'
@@ -36,12 +33,13 @@ for dataset in datasets:
 #         elif kernel_size == 5:
 #             target_ranks = [1,3,5]
 #         elif kernel_size == 7:
-#             target_ranks = [3,5,7]
+#             target_ranks = [1,3,5,7]
 #         for metric in metrices:
 #             for target_rank in target_ranks:
 #                 subprocess.call(['python3', script_name,
 #                                 '--dataset=' + dataset,
 #                                 '--kernel_size='+str(kernel_size),
 #                                 '--metric='+metric,
+#                                 '--agg_option=' + 'stablization_afterward',
 #                                 '--target_rank=' + str(target_rank)
 #                                 ])

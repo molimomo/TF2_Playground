@@ -11,7 +11,7 @@ metrices = ['val_loss', 'val_accuracy', 'loss', 'accuracy']
 
 def parse_args():
     parser = argparse.ArgumentParser(description="Plotting results.")
-    parser.add_argument('--option', nargs='?', default='varying_rank',
+    parser.add_argument('--option', nargs='?', default='afterward_converge',
                         help='option for plotting results')
     parser.add_argument('--metric', nargs='?', default='val_loss',
                         help='option for metric')
@@ -263,6 +263,75 @@ def plot_converge_status(args):
         plt.show()
     print('dsds')
 
+def plot_converge_afterward(args):
+    print('Plotting afterward converge...')
+    global approaches_a, approaches_b
+    approaches = approaches_a + approaches_b
+    target_folder = os.path.join(args.aggregation_path, args.dataset)
+    if args.kernel_size == 3:
+        target_ranks = [1, 2, 3]
+    elif args.kernel_size == 5:
+        target_ranks = [1, 3, 5]
+    elif args.kernel_size == 7:
+        target_ranks = [1, 3, 5, 7]
+
+    markers = [">", "<","*","v","^","+","x","h","s"]
+    colors = ["b", "g", "r", "c", "m", "y", "k", "0.75", "0.5"]
+    for rank in target_ranks:
+        fig, axes = plt.subplots(nrows=2, ncols=1)
+        config = "_".join(["converge_afterward", "kernel_size", str(args.kernel_size),
+                           "num_kernel", str(args.kernel),
+                           "channel", str(args.channel),
+                           "rank", str(rank),
+                           "epoch", str(args.epoch)])
+        target_file = os.path.join(target_folder, config + '.csv')
+        df_target = pd.read_csv(target_file)
+
+        # axes[0].scatter(df_target['max_accuracy_epoch'].values,df_target['max_accuracy'].values)
+        for idx, row in df_target.iterrows():
+            label = row['approach']
+            x = row['max_accuracy_epoch']
+            y = row['max_accuracy']
+            axes[0].scatter(x,y, label=label, c=colors[idx], marker=markers[idx])
+            # axes[0].annotate(label, (x,y), textcoords="offset points", xytext=(0,-10), ha='center')
+        title = '_'.join(['Accuracy',
+                          'kernel_size', str(args.kernel_size), 'rank', str(rank), 'Higher', 'the better'])
+        axes[0].set_title(title)
+        axes[0].set_ylabel('Accuracy')
+        axes[0].set_xlabel('Epoch')
+
+        # axes[1].scatter(df_target['min_loss_epoch'].values,df_target['min_loss'].values,c='red')
+        for idx, row in df_target.iterrows():
+            label = row['approach']
+            x = row['min_loss_epoch']
+            y = row['min_loss']
+            axes[1].scatter(x, y, label=label, c=colors[idx], marker=markers[idx])
+        title = '_'.join(['Loss',
+                          'kernel_size', str(args.kernel_size), 'rank', str(rank), 'Lower','the better'])
+        axes[1].set_title(title)
+        axes[1].set_ylabel('Loss')
+        axes[1].set_xlabel('Epoch')
+        handles, labels = axes[1].get_legend_handles_labels()
+        lg=fig.legend(handles, labels, loc='center right', bbox_to_anchor=(1.25,0.5))
+        plt.tight_layout()
+        fig_title = '_'.join(['Converge_afterward',
+                          'kernel_size', str(args.kernel_size), 'rank', str(rank)])
+        figure_folder = os.path.join(args.figure_path, args.dataset)
+        res_config = fig_title+'.png'
+        plt.savefig(os.path.join(figure_folder, res_config),
+                    format='png',
+                    bbox_extra_artists=(lg,),
+                    bbox_inches='tight')
+        plt.show()
+
+        print('dsds')
+
+
+
+
+
+
+
 if __name__ == '__main__':
     # Data loading
     args = parse_args()
@@ -272,6 +341,9 @@ if __name__ == '__main__':
         plot_varying_approaches(args)
     elif args.option == 'converge_status':
         plot_converge_status(args)
+    elif args.option == 'afterward_converge':
+        plot_converge_afterward(args)
+
 
 
 
