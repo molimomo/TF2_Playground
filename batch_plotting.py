@@ -3,21 +3,19 @@ import subprocess
 
 datasets = ['mnist','fashion_mnist']
 kernel_sizes =[3,5,7]
-groups = ['a']
-metrices = ['val_accuracy']
-option = 'afterward_converge'
-identity_option = 1
+metrices = ['val_loss','val_accuracy']
+option = 'multi_runs'
+measurements =['avg']
 for dataset in datasets:
     for kernel_size in kernel_sizes:
         for metric in metrices:
-            for group in groups:
+            for measurement in measurements:
                 subprocess.call(['python3', 'plotting_results.py',
                                  '--option='+option,
                                  '--dataset=' + dataset,
                                  '--kernel_size='+str(kernel_size),
                                  '--metric='+metric,
-                                 '--group='+group,
-                                 '--identity_option='+str(identity_option)])
+                                 '--measurement='+str(measurement)])
 
 
 # datasets = ['mnist', 'fashion_mnist']

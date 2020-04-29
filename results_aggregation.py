@@ -4,15 +4,12 @@ import json
 import pandas as pd
 import numpy as np
 import sys
+
 options = ["h_rank",
            "l_rank",
-           "HL",
            "l_rank_identity",
-           "HL_identity",
-           "dual_low_z_v",
-           "dual_low_zi_v",
-           "dual_low_z_vi",
-           "dual_low_zi_vi"]
+           "HL",
+           "HL_identity"]
 
 identity_options = ["l_rank_identity",
                     "HL_identity",
@@ -25,7 +22,7 @@ metrics = ["loss", "accuracy", "val_loss","val_accuracy"]
 
 def parse_args():
     parser = argparse.ArgumentParser(description="Run aggregation.")
-    parser.add_argument('--agg_option', nargs='?', default='stablization_afterward',
+    parser.add_argument('--agg_option', nargs='?', default='multiple_runs',
                         help='Option for aggregation.')
     parser.add_argument('--history_path', nargs='?', default='./history/',
                         help='The folder path to save history.')
@@ -35,7 +32,7 @@ def parse_args():
                         help='Target rank for Conv low rank weight matrix.')
     parser.add_argument('--dataset', nargs='?', default='mnist',
                         help='Choose a Dataset')
-    parser.add_argument('--epoch', type=int, default=5,
+    parser.add_argument('--epoch', type=int, default=100,
                         help='Training Epoch')
     parser.add_argument('--channel', type=int, default=1,
                         help='Number of channel.')
@@ -249,6 +246,47 @@ def evaluate_afterward(args):
     df_rec.to_csv(os.path.join(results_folder, config + '.csv'), index=False)
     print('done... ' + str(config))
 
+def evaluate_multiple_runs(args):
+    history_folder = os.path.join(args.history_path, args.dataset)
+    aggregation_folder = os.path.join(args.target_folder, args.dataset)
+    if not os.path.exists(aggregation_folder):
+        os.makedirs(aggregation_folder)
+    for root, directories, files in os.walk(history_folder):
+        if len(directories) != 0:
+            avg_rec = dict()
+            std_rec = dict()
+            for option in options:
+                history_rec = dict()
+                if option == 'h_rank':
+                    rank = 1
+                else:
+                    rank = args.target_rank
+                config = "_".join(["kernel_size", str(args.kernel_size),
+                                   "num_kernel", str(args.kernel),
+                                   "channel", str(args.channel),
+                                   "rank", str(rank),
+                                   "epoch", str(args.epoch)])
+                for d in directories:
+                    seed_folder = os.path.join(history_folder, d)
+                    target_file = os.path.join(seed_folder, option+'_'+config+'.csv')
+                    df_history = pd.read_csv(target_file)
+                    history_rec[d] = df_history[args.metric].values
+                df_res = pd.DataFrame.from_dict(history_rec)
+                option_folder = os.path.join(aggregation_folder, option)
+                if not os.path.exists(option_folder):
+                    os.makedirs(option_folder)
+                df_res.to_csv(os.path.join(option_folder, str(args.metric)+'_multi_runs_'+ str(option) + '_'+config+'.csv'))
+                avg_res = df_res.mean(axis=1)
+                std_res = df_res.std(axis=1)
+                avg_rec[option] = avg_res
+                std_rec[option] = std_res
+            df_avg_rec = pd.DataFrame.from_dict(avg_rec)
+            df_std_rec = pd.DataFrame.from_dict(std_rec)
+
+            df_avg_rec.to_csv(os.path.join(aggregation_folder, 'avg_' + str(args.metric) + '_multi_runs_' + config + '.csv'))
+            df_std_rec.to_csv(os.path.join(aggregation_folder, 'std_' + str(args.metric) + '_multi_runs_' + config + '.csv'))
+            print('dsd')
+
 def run_aggregation(args):
     agg_option = args.agg_option
     if agg_option == 'converge_rate':
@@ -257,6 +295,8 @@ def run_aggregation(args):
         evaluate_stabilization_rate(args)
     elif agg_option == 'stablization_afterward':
         evaluate_afterward(args)
+    elif agg_option == 'multiple_runs':
+        evaluate_multiple_runs(args)
 
 
 if __name__ == '__main__':

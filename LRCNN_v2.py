@@ -35,7 +35,11 @@ def parse_args():
     parser.add_argument('--epoch', type=int, default=3,
                         help='Training Epoch.')
     parser.add_argument('--seed_part', type=int, default=0,
-                        help='Random seed.')
+                        help='Partition for random seed.')
+    parser.add_argument('--seed', type=int, default=0,
+                        help='seed.')
+    parser.add_argument('--perseed', type=int, default=0,
+                        help='seed.')
     parser.add_argument('--channel', type=int, default=1,
                         help='Number of channel.')
     parser.add_argument('--kernel', type=int, default=1,
@@ -197,9 +201,12 @@ def runCNN(seed, args):
 
 if __name__ == '__main__':
     # Data loading
-    args =parse_args()
-    seed_start = int(args.seed_part) * 20
-    seed_end = (int(args.seed_part) + 1) * 20
-    for i in range(seed_start, seed_end):
-        runCNN(i, args)
+    args = parse_args()
+    if args.perseed == 1:
+        runCNN(args.seed, args)
+    else:
+        seed_start = int(args.seed_part) * 20
+        seed_end = (int(args.seed_part) + 1) * 20
+        for i in range(seed_start, seed_end):
+            runCNN(i, args)
 

@@ -4,6 +4,7 @@ import os
 import argparse
 import matplotlib
 import matplotlib.pyplot as plt
+approaches = ['h_rank', 'l_rank', 'HL', 'l_rank_identity', 'HL_identity']
 approaches_a = ['l_rank', 'HL', 'l_rank_identity', 'HL_identity']
 approaches_b = ['dual_low_z_v', 'dual_low_zi_v', 'dual_low_z_vi', 'dual_low_zi_vi']
 
@@ -11,9 +12,9 @@ metrices = ['val_loss', 'val_accuracy', 'loss', 'accuracy']
 
 def parse_args():
     parser = argparse.ArgumentParser(description="Plotting results.")
-    parser.add_argument('--option', nargs='?', default='afterward_converge',
+    parser.add_argument('--option', nargs='?', default='multi_runs',
                         help='option for plotting results')
-    parser.add_argument('--metric', nargs='?', default='val_loss',
+    parser.add_argument('--metric', nargs='?', default='val_accuracy',
                         help='option for metric')
     parser.add_argument('--group', nargs='?', default='a',
                         help='option for group')
@@ -43,6 +44,8 @@ def parse_args():
                         help='0: unscalaring, 1: scalar to 1')
     parser.add_argument('--ylim', nargs='?', default='[0, 1]',
                         help='Boundary for y-axis.')
+    parser.add_argument('--measurement', nargs='?', default='std',
+                        help='Measurement (avg, std)')
 
     return parser.parse_args()
 
@@ -326,8 +329,44 @@ def plot_converge_afterward(args):
 
         print('dsds')
 
+def plot_multi_runs(args):
+    target_folder = os.path.join(args.aggregation_path, args.dataset)
 
+    if args.kernel_size == 3:
+        target_ranks = [1, 2, 3]
+    elif args.kernel_size == 5:
+        target_ranks = [1, 3, 5]
+    elif args.kernel_size == 7:
+        target_ranks = [1, 3, 5, 7]
 
+    if args.metric == 'val_loss':
+        ylim = [0, 5]
+    else:
+        ylim = [0.65, 0.95]
+
+    for rank in target_ranks:
+        config = '_'.join([args.metric,'multi_runs',
+                              'kernel_size',str(args.kernel_size),
+                              "num_kernel", str(args.kernel),
+                              "channel", str(args.channel),
+                              "rank", str(rank),
+                              "epoch", str(args.epoch)])
+        target_file = os.path.join(target_folder,args.measurement+'_'+config+'.csv')
+        df_target = pd.read_csv(target_file, usecols=approaches)
+        if args.measurement == 'avg':
+            lines = df_target.plot.line(ylim=ylim)
+        else:
+            lines = df_target.plot.line()
+        title = '_'.join([args.measurement,args.metric,
+                          'kernel_size', str(args.kernel_size), 'rank', str(rank)])
+        lines.set(xlabel='Epoch', ylabel=args.measurement+'_'+args.metric, title=title)
+        figure_folder = os.path.join(args.figure_path, args.dataset)
+        if not os.path.exists(figure_folder):
+            os.makedirs(figure_folder)
+        plt.tight_layout()
+        plt.savefig(os.path.join(figure_folder, title+'.png'))
+        plt.show()
+        print('dsdsds')
 
 
 
@@ -343,6 +382,8 @@ if __name__ == '__main__':
         plot_converge_status(args)
     elif args.option == 'afterward_converge':
         plot_converge_afterward(args)
+    elif args.option == 'multi_runs':
+        plot_multi_runs(args)
 
 
 
