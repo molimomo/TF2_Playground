@@ -24,8 +24,8 @@ def parse_args():
                         help='Target rank for Conv low rank weight matrix.')
     parser.add_argument('--dataset', nargs='?', default='mnist',
                         help='Choose a Dataset.')
-    parser.add_argument('--history_path', nargs='?', default='./history/',
-                        help='The folder path to save history.')
+    parser.add_argument('--history_path', nargs='?', default='./history_old/',
+                        help='The folder path to save history_old.')
     parser.add_argument('--model_path', nargs='?', default='./pretrain/',
                         help='The folder path to save trained model.')
     parser.add_argument('--epoch', type=int, default=100,
@@ -163,14 +163,14 @@ def runCNN(args):
                           "rank",str(args.target_rank),
                           "epoch", str(args.epoch)])
 
-    # Save history
+    # Save history_old
     if not os.path.isdir(args.history_path):
         os.mkdirs(args.history_path)
     history_loc = os.path.join(args.history_path, args.dataset)
     if not os.path.isdir(history_loc):
         os.mkdir(history_loc)
     pd.DataFrame.from_dict(res.history).to_csv(history_loc + '/'+model_str+'.csv', index=False)
-    print("Saved history to disk")
+    print("Saved history_old to disk")
 
     # Save model
     if not os.path.isdir(args.model_path):

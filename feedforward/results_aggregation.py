@@ -5,11 +5,18 @@ import pandas as pd
 import numpy as np
 import sys
 
-options = ["h_rank",
+# options = ["h_rank",
+#            "l_rank",
+#            "l_rank_identity",
+#            "HL",
+#            "HL_identity"]
+
+options = [
+           "baseline",
+           "h_rank",
            "l_rank",
            "l_rank_identity",
-           "HL",
-           "HL_identity"]
+          ]
 
 identity_options = ["l_rank_identity",
                     "HL_identity",
@@ -257,13 +264,11 @@ def evaluate_multiple_runs(args):
             std_rec = dict()
             for option in options:
                 history_rec = dict()
-                if option == 'h_rank':
-                    rank = 1
+                if option == 'h_rank' or option == 'baseline':
+                    rank = 10
                 else:
                     rank = args.target_rank
-                config = "_".join(["kernel_size", str(args.kernel_size),
-                                   "num_kernel", str(args.kernel),
-                                   "channel", str(args.channel),
+                config = "_".join([
                                    "rank", str(rank),
                                    "epoch", str(args.epoch)])
                 for d in directories:

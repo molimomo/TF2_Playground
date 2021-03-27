@@ -4,7 +4,8 @@ import os
 import argparse
 import matplotlib
 import matplotlib.pyplot as plt
-approaches = ['h_rank', 'l_rank', 'HL', 'l_rank_identity', 'HL_identity']
+approaches = ['baseline', 'h_rank', 'l_rank', 'HL', 'l_rank_identity', 'HL_identity']
+#approaches = [, 'h_rank', 'l_rank', 'l_rank_identity']
 approaches_a = ['l_rank', 'HL', 'l_rank_identity', 'HL_identity']
 approaches_b = ['dual_low_z_v', 'dual_low_zi_v', 'dual_low_z_vi', 'dual_low_zi_vi']
 
@@ -30,7 +31,7 @@ def parse_args():
                         help='The folder path to save history_old.')
     parser.add_argument('--figure_path', nargs='?', default='./result_figures/',
                         help='The folder path to save result figures.')
-    parser.add_argument('--epoch', type=int, default=100,
+    parser.add_argument('--epoch', type=int, default=50,
                         help='Training Epoch.')
     parser.add_argument('--channel', type=int, default=1,
                         help='Number of channel.')
@@ -331,24 +332,15 @@ def plot_converge_afterward(args):
 
 def plot_multi_runs(args):
     target_folder = os.path.join(args.aggregation_path, args.dataset)
-
-    if args.kernel_size == 3:
-        target_ranks = [1, 2, 3]
-    elif args.kernel_size == 5:
-        target_ranks = [1, 3, 5]
-    elif args.kernel_size == 7:
-        target_ranks = [1, 3, 5, 7]
+    target_ranks = [10, 20, 30]
 
     if args.metric == 'val_loss':
-        ylim = [0, 5]
+        ylim = [1.5,1.7]
     else:
-        ylim = [0.65, 0.95]
+        ylim = [0.3, 0.45]
 
     for rank in target_ranks:
         config = '_'.join([args.metric,'multi_runs',
-                              'kernel_size',str(args.kernel_size),
-                              "num_kernel", str(args.kernel),
-                              "channel", str(args.channel),
                               "rank", str(rank),
                               "epoch", str(args.epoch)])
         target_file = os.path.join(target_folder,args.measurement+'_'+config+'.csv')
@@ -358,7 +350,7 @@ def plot_multi_runs(args):
         else:
             lines = df_target.plot.line()
         title = '_'.join([args.measurement,args.metric,
-                          'kernel_size', str(args.kernel_size), 'rank', str(rank)])
+                        'rank', str(rank)])
         lines.set(xlabel='Epoch', ylabel=args.measurement+'_'+args.metric, title=title)
         figure_folder = os.path.join(args.figure_path, args.dataset)
         if not os.path.exists(figure_folder):

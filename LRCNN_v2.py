@@ -19,6 +19,7 @@ import tensorflow as tf
 import random as rn
 #os.environ['PYTHONHASHSEED'] = str(0)
 import json
+import math
 
 def parse_args():
     parser = argparse.ArgumentParser(description="Run Deep CNN.")
@@ -28,8 +29,8 @@ def parse_args():
                         help='Target rank for Conv low rank weight matrix.')
     parser.add_argument('--dataset', nargs='?', default='mnist',
                         help='Choose a Dataset.')
-    parser.add_argument('--history_path', nargs='?', default='./history/',
-                        help='The folder path to save history.')
+    parser.add_argument('--history_path', nargs='?', default='./history_old/',
+                        help='The folder path to save history_old.')
     parser.add_argument('--model_path', nargs='?', default='./pretrain/',
                         help='The folder path to save trained model.')
     parser.add_argument('--epoch', type=int, default=3,
@@ -54,12 +55,18 @@ def parse_args():
 
 def get_identity_matrix(rows, cols):
     res = np.zeros((rows, cols))
-    row_bound = int(rows/2)
-    col_bound = int(cols/2)
-    for i in range(rows):
-        for j in range(cols):
-            if (i < row_bound and j < col_bound) or (i >= row_bound and j >= col_bound) :
-                res[i, j] = 1
+    g = math.floor(rows / cols)
+
+    for i in range(cols):
+        non_zero_start = i * g
+        non_zero_end = (i + 1) * g
+        if non_zero_end >= rows:
+            non_zero_end = rows
+        for j in range(non_zero_start, non_zero_end):
+            res[j, i] = 1 / math.sqrt(g)
+        if i == cols - 1:  # the last column
+            for j in range(non_zero_start, rows):
+                res[j, i] = 1 / math.sqrt(rows - non_zero_start)
     return res
 
 ## The shape of Conv2D weights: [kernel_row, kernel_col, number of channels, number of filters]
@@ -181,14 +188,14 @@ def runCNN(seed, args):
                           "rank",str(args.target_rank),
                           "epoch", str(args.epoch)])
 
-    # Save history
+    # Save history_old
     if not os.path.exists(args.history_path):
         os.makedirs(args.history_path)
     history_loc = os.path.join(args.history_path, args.dataset,'seed_'+str(seed)+'/')
     if not os.path.exists(history_loc):
         os.makedirs(history_loc)
     pd.DataFrame.from_dict(res.history).to_csv(history_loc + '/'+model_str+'.csv', index=False)
-    print("Saved history to disk")
+    print("Saved history_old to disk")
 
     # Save model
     if not os.path.isdir(args.model_path):
